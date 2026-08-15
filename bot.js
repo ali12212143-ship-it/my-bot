@@ -25,7 +25,7 @@ function isAuthorized(ctx) {
     return true;
 }
 
-// ======== تولید کارت ========
+// ======== تولید کارت (بدون شماره) ========
 function generateCards(bin, count = 5) {
     const cards = [];
     for (let i = 0; i < count; i++) {
@@ -95,6 +95,7 @@ bot.start((ctx) => {
     );
 });
 
+// ======== دستور /gen (بدون شماره) ========
 bot.command('gen', async (ctx) => {
     if (!isAuthorized(ctx)) return;
     const args = ctx.message.text.split(' ');
@@ -104,11 +105,13 @@ bot.command('gen', async (ctx) => {
     const cards = generateCards(bin, count);
     let reply = `🔹 ${cards.length} کارت از BIN ${bin}:\n\n`;
     cards.forEach((c) => {
+        // فقط خود کارت، بدون شماره
         reply += `${c.number}|${c.expiry.split('/')[0]}|${c.expiry.split('/')[1]}|${c.cvc}\n`;
     });
     ctx.reply(reply);
 });
 
+// ======== دستور /sh ========
 bot.command('sh', async (ctx) => {
     if (!isAuthorized(ctx)) return;
     const parts = ctx.message.text.split(' ')[1]?.split('|');
@@ -153,6 +156,7 @@ bot.command('sh', async (ctx) => {
     ctx.reply(reply);
 });
 
+// ======== دستور /stats ========
 bot.command('stats', (ctx) => {
     if (!isAuthorized(ctx)) return;
     const elapsed = ((Date.now() - stats.startTime) / 1000);
