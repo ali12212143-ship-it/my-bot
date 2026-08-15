@@ -103,9 +103,12 @@ bot.command('gen', async (ctx) => {
     if (!bin || bin.length < 6) return ctx.reply('⚠️ BIN ۶ رقمی وارد کن.');
     const cards = generateCards(bin, count);
     let reply = `🔹 ${cards.length} کارت از BIN ${bin}:\n\n`;
-    cards.forEach((c, i) => {
-        reply += `${i+1}. ${c.number}|${c.expiry.split('/')[0]}|${c.expiry.split('/')[1]}|${c.cvc}\n`;
+    cards.forEach((c) => {
+        // شماره گذاری حذف شد و فقط کارت نمایش داده میشه
+        reply += `${c.number}|${c.expiry.split('/')[0]}|${c.expiry.split('/')[1]}|${c.cvc}\n`;
     });
+    ctx.reply(reply);
+});
     ctx.reply(reply);
 });
 
