@@ -87,12 +87,11 @@ async function getBinInfo(bin) {
 // ======== دستورات ========
 bot.start((ctx) => {
     if (!isAuthorized(ctx)) return;
-    ctx.reply('✨ ربات کارت چکر ✨\n📌 از /menu استفاده کن.');
-});
-
-bot.command('menu', (ctx) => {
-    if (!isAuthorized(ctx)) return;
-    ctx.reply('📌 منوی اصلی:\n/gen [BIN]\n/hit [CARD|MM|YY|CVV]\n/stats');
+    ctx.reply(
+        '/start Initialize the bot\n' +
+        '/sh Shopify Check Cards\n' +
+        '/txt Process cards from a .txt file'
+    );
 });
 
 bot.command('gen', async (ctx) => {
@@ -104,19 +103,21 @@ bot.command('gen', async (ctx) => {
     const cards = generateCards(bin, count);
     let reply = `🔹 ${cards.length} کارت از BIN ${bin}:\n\n`;
     cards.forEach((c) => {
-        // شماره گذاری حذف شد و فقط کارت نمایش داده میشه
         reply += `${c.number}|${c.expiry.split('/')[0]}|${c.expiry.split('/')[1]}|${c.cvc}\n`;
     });
     ctx.reply(reply);
 });
-    ctx.reply(reply);
-});
 
-bot.command('hit', async (ctx) => {
+bot.command('sh', async (ctx) => {
     if (!isAuthorized(ctx)) return;
     const parts = ctx.message.text.split(' ')[1]?.split('|');
     if (!parts || parts.length !== 4) {
-        return ctx.reply('⚠️ فرمت: /hit شماره|ماه|سال|CVV');
+        return ctx.reply(
+            'usage.exe\n' +
+            '/sh [cc_line]\n' +
+            '/sh [multiline_ccs]\n\n' +
+            'missing input. system locked.'
+        );
     }
 
     const card = {
@@ -132,24 +133,22 @@ bot.command('hit', async (ctx) => {
     saveStats(stats);
 
     const binInfo = await getBinInfo(card.number.substring(0, 6));
-    const country = binInfo?.country?.name || 'UNKNOWN';
+    const country = binInfo?.country?.name || 'UNITED STATES';
     const bank = binInfo?.bank?.name || 'UNKNOWN';
-    const icon = result.status === 'approved' ? '✅' : '❌';
+    const icon = result.status === 'approved' ? 'approved' : 'declined';
 
-    let reply = `✦ shopify.result 💠\n`;
-    reply += `┌── card.data\n`;
-    reply += `🔹 ${card.number}|${parts[1]}|${parts[2]}|${card.cvc}\n`;
-    reply += `🔹 status: ${icon} ${result.status}\n`;
-    reply += `🔹 code: ${result.code}\n`;
-    reply += `🔹 bin: ${bank}\n`;
-    reply += `🔹 country: 🇺🇸 ${country}\n`;
-    reply += `└──────────────\n`;
-    reply += `┌── gate.info\n`;
-    reply += `🔹 amt: $7.68\n`;
-    reply += `🔹 site: cr***e.myshopify.com\n`;
-    reply += `└──────────────\n`;
-    reply += `👤 user: ${ctx.from.id}\n`;
-    reply += `🏴 dev: @your_bot`;
+    let reply = `shopify.result\n`;
+    reply += `card.data\n`;
+    reply += `${card.number}|${parts[1]}|${parts[2]}|${card.cvc}\n`;
+    reply += `status: ${icon}\n`;
+    reply += `bin: ${bank}\n`;
+    reply += `country: ${country}\n\n`;
+    reply += `gate.info\n`;
+    reply += `code: ${result.code}\n`;
+    reply += `amt: $7.68\n`;
+    reply += `site: cr***e.myshopify.com\n\n`;
+    reply += `user: ${ctx.from.id}\n`;
+    reply += `dev: @nullXchk_bot`;
 
     ctx.reply(reply);
 });
@@ -159,7 +158,7 @@ bot.command('stats', (ctx) => {
     const elapsed = ((Date.now() - stats.startTime) / 1000);
     const timeStr = new Date(elapsed * 1000).toISOString().substr(11, 8);
     const rate = stats.total ? ((stats.approved / stats.total) * 100).toFixed(1) : 0;
-    ctx.reply(`📊 آمار ربات:\ntotal: ${stats.total}\napproved: ${stats.approved} (${rate}%)\ndeclined: ${stats.declined}\nelapsed: ${timeStr}`);
+    ctx.reply(`stats.info\ntotal: ${stats.total}\napproved: ${stats.approved} (${rate}%)\ndeclined: ${stats.declined}\nelapsed: ${timeStr}`);
 });
 
 bot.launch()
