@@ -50,7 +50,7 @@ function generateCards(bin, count = 5) {
     return cards;
 }
 
-// ======== تست کارت (ساده و بدون خطا) ========
+// ======== تست کارت ========
 async function testCard(card) {
     try {
         const response = await axios.post(
@@ -87,29 +87,12 @@ async function getBinInfo(bin) {
 // ======== دستورات ========
 bot.start((ctx) => {
     if (!isAuthorized(ctx)) return;
-    ctx.replyWithMarkdown(`✨ *ربات کارت چکر* ✨\n📌 از /menu استفاده کن.`);
+    ctx.reply('✨ ربات کارت چکر ✨\n📌 از /menu استفاده کن.');
 });
 
 bot.command('menu', (ctx) => {
     if (!isAuthorized(ctx)) return;
-    ctx.reply('📌 منوی اصلی:', {
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: '🔹 تولید کارت', callback_data: 'gen' }],
-                [{ text: '🔹 تست سریع', callback_data: 'hit' }],
-                [{ text: '📊 آمار', callback_data: 'stats' }]
-            ]
-        }
-    });
-});
-
-bot.action('gen', (ctx) => { ctx.answerCbQuery(); ctx.reply('دستور /gen [BIN] رو بفرست.'); });
-bot.action('hit', (ctx) => { ctx.answerCbQuery(); ctx.reply('دستور /hit [CARD|MM|YY|CVV] رو بفرست.'); });
-bot.action('stats', (ctx) => { ctx.answerCbQuery(); 
-    const elapsed = ((Date.now() - stats.startTime) / 1000);
-    const timeStr = new Date(elapsed * 1000).toISOString().substr(11, 8);
-    const rate = stats.total ? ((stats.approved / stats.total) * 100).toFixed(1) : 0;
-    ctx.replyWithMarkdown(`*📊 آمار*\n\`\`\`\ntotal: ${stats.total}\napproved: ${stats.approved} (${rate}%)\ndeclined: ${stats.declined}\nelapsed: ${timeStr}\n\`\`\``);
+    ctx.reply('📌 منوی اصلی:\n/gen [BIN]\n/hit [CARD|MM|YY|CVV]\n/stats');
 });
 
 bot.command('gen', async (ctx) => {
@@ -150,22 +133,30 @@ bot.command('hit', async (ctx) => {
     const bank = binInfo?.bank?.name || 'UNKNOWN';
     const icon = result.status === 'approved' ? '✅' : '❌';
 
-    ctx.replyWithMarkdown(`
-✦ *shopify.result* 💠
-┌── *card.data*
-🔹 \`${card.number}|${parts[1]}|${parts[2]}|${card.cvc}\`
-🔹 *status:* \`${icon} ${result.status}\`
-🔹 *code:* \`${result.code}\`
-🔹 *bin:* ${bank}
-🔹 *country:* 🇺🇸 ${country}
-└──────────────
-┌── *gate.info*
-🔹 *amt:* \`$7.68\`
-🔹 *site:* \`cr***e.myshopify.com\`
-└──────────────
-👤 *user:* ${ctx.from.id}
-🏴 *dev:* @your_bot
-    `);
+    let reply = `✦ shopify.result 💠\n`;
+    reply += `┌── card.data\n`;
+    reply += `🔹 ${card.number}|${parts[1]}|${parts[2]}|${card.cvc}\n`;
+    reply += `🔹 status: ${icon} ${result.status}\n`;
+    reply += `🔹 code: ${result.code}\n`;
+    reply += `🔹 bin: ${bank}\n`;
+    reply += `🔹 country: 🇺🇸 ${country}\n`;
+    reply += `└──────────────\n`;
+    reply += `┌── gate.info\n`;
+    reply += `🔹 amt: $7.68\n`;
+    reply += `🔹 site: cr***e.myshopify.com\n`;
+    reply += `└──────────────\n`;
+    reply += `👤 user: ${ctx.from.id}\n`;
+    reply += `🏴 dev: @your_bot`;
+
+    ctx.reply(reply);
+});
+
+bot.command('stats', (ctx) => {
+    if (!isAuthorized(ctx)) return;
+    const elapsed = ((Date.now() - stats.startTime) / 1000);
+    const timeStr = new Date(elapsed * 1000).toISOString().substr(11, 8);
+    const rate = stats.total ? ((stats.approved / stats.total) * 100).toFixed(1) : 0;
+    ctx.reply(`📊 آمار ربات:\ntotal: ${stats.total}\napproved: ${stats.approved} (${rate}%)\ndeclined: ${stats.declined}\nelapsed: ${timeStr}`);
 });
 
 bot.launch()
