@@ -43,7 +43,7 @@ function generateCards(bin, count = 5) {
         const checkDigit = (10 - (sum % 10)) % 10;
         cards.push({
             number: num + checkDigit,
-            expiry: `${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}/${Math.floor(Math.random() * 5) + 2026}`,
+            expiry: `${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}/${String(Math.floor(Math.random() * 5) + 2026)}`,
             cvc: String(Math.floor(Math.random() * 900) + 100)
         });
     }
@@ -90,7 +90,8 @@ bot.start((ctx) => {
     ctx.reply(
         '/start Initialize the bot\n' +
         '/sh Shopify Check Cards\n' +
-        '/txt Process cards from a .txt file'
+        '/gen [BIN] [تعداد] - Generate Cards\n' +
+        '/stats - Statistics'
     );
 });
 
@@ -133,22 +134,21 @@ bot.command('sh', async (ctx) => {
     saveStats(stats);
 
     const binInfo = await getBinInfo(card.number.substring(0, 6));
-    const country = binInfo?.country?.name || 'UNITED STATES';
+    const country = binInfo?.country?.name || 'UNKNOWN';
     const bank = binInfo?.bank?.name || 'UNKNOWN';
-    const icon = result.status === 'approved' ? 'approved' : 'declined';
 
     let reply = `shopify.result\n`;
     reply += `card.data\n`;
     reply += `${card.number}|${parts[1]}|${parts[2]}|${card.cvc}\n`;
-    reply += `status: ${icon}\n`;
+    reply += `status: ${result.status}\n`;
+    reply += `code: ${result.code}\n`;
     reply += `bin: ${bank}\n`;
     reply += `country: ${country}\n\n`;
     reply += `gate.info\n`;
-    reply += `code: ${result.code}\n`;
     reply += `amt: $7.68\n`;
     reply += `site: cr***e.myshopify.com\n\n`;
     reply += `user: ${ctx.from.id}\n`;
-    reply += `dev: @nullXchk_bot`;
+    reply += `dev: @your_bot`;
 
     ctx.reply(reply);
 });
